@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Camera</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Camera">
+<meta name="application-name" content="Camera">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<style>
+:root{color-scheme:dark;--y:#ffd60a;--sb:max(env(safe-area-inset-bottom,0rem),2.125rem);--st:max(env(safe-area-inset-top,0rem),2.75rem);box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{height:100%;margin:0;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;overflow:hidden}
+#setup{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:0.875rem;padding:calc(1.5rem + env(safe-area-inset-top,0rem)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom,0rem));max-width:30rem;margin:0 auto;overflow:auto}
+h1{font-size:1.75rem;margin:0}
+p{color:#9a9aa0;margin:0;font-size:0.875rem}
+.card{background:#1c1c1e;border-radius:0.875rem;padding:0.875rem}
+label{display:block;font-size:0.8125rem;color:#9a9aa0;margin-bottom:0.5rem}
+input[type=file]{width:100%;color:#fff}
+.row2{display:flex;justify-content:space-between;align-items:center}
+#go{background:var(--y);color:#000;border:0;border-radius:0.875rem;padding:1rem;font-size:1.0625rem;font-weight:600}
+#go:disabled{opacity:.4}
+#cam{position:absolute;inset:0;display:none;background:#000;overflow:hidden;-webkit-user-select:none;user-select:none}
+#vf{position:absolute;left:0;right:0;top:0;bottom:0;overflow:hidden;transition:top .35s,bottom .35s}
+.video #vf{top:var(--st);bottom:calc(var(--sb) + 3.625rem)}
+#stage{position:absolute;inset:0;transition:transform .4s cubic-bezier(.3,.7,.3,1),filter .26s}
+#stage.blur{filter:blur(1.125rem) brightness(.6)}
+#stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#tbar{position:absolute;top:0;left:0;right:0;height:var(--st);background:#000;opacity:0;transition:opacity .35s}
+.video #tbar{opacity:1}
+#bbar{position:absolute;bottom:0;left:0;right:0;height:calc(var(--sb) + 10.25rem);background:rgba(12,10,8,.74);-webkit-backdrop-filter:blur(1.375rem);backdrop-filter:blur(1.375rem);transition:height .35s,background .35s}
+.video #bbar{height:calc(var(--sb) + 3.625rem);background:#000}
+#dot{position:absolute;top:0.5rem;left:77.7%;width:0.4375rem;height:0.4375rem;border-radius:50%;background:#30d158}
+.pill{position:absolute;top:calc(var(--st) + 1rem);height:2.0625rem;border-radius:1.0625rem;background:rgba(40,40,42,.76);-webkit-backdrop-filter:blur(1rem);backdrop-filter:blur(1rem);display:flex;align-items:center;padding:0 0.125rem}
+.pill i{width:2rem;height:2.0625rem;display:grid;place-items:center}
+.pill svg{width:1.375rem;height:1.375rem;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#pr{right:0.9375rem}
+#pl{left:0.9375rem;background:rgba(58,74,112,.72);padding:0 0.875rem;gap:0.75rem;font-size:1.0625rem;font-weight:500}
+#pl sup{font-size:0.6875rem;font-weight:500;opacity:.85;margin-left:0.125rem;vertical-align:0.3125rem}
+.video .ph{display:none}
+.photo .vd{display:none}
+.rec .pill{display:none}
+#timer{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--st) + 1rem);height:1.875rem;padding:0 0.75rem;border-radius:0.5625rem;background:#ff453a;font-size:1.0625rem;font-weight:600;font-variant-numeric:tabular-nums;display:none;align-items:center}
+.rec #timer{display:flex}
+#zoom{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--sb) + 11.25rem);display:flex;gap:0.125rem;height:2.25rem}
+#zoom button{min-width:2.25rem;height:2.25rem;border-radius:1.125rem;border:0;background:transparent;color:#fff;font-size:0.9375rem;font-weight:500;padding:0 0.375rem;transition:background .2s}
+#zoom button.on{background:rgba(38,38,40,.85);color:var(--y);min-width:2.5rem;font-size:0.875rem;font-weight:600}
+#shutter{position:absolute;left:50%;margin-left:-2.3438rem;bottom:calc(var(--sb) + 4.5625rem);width:4.6875rem;height:4.6875rem;border-radius:50%;border:0.125rem solid rgba(170,170,175,.75);background:none;padding:0;display:grid;place-items:center}
+#shutter i{display:block;width:4rem;height:4rem;border-radius:50%;background:#fff;transition:all .18s}
+#shutter:active i{transform:scale(.9)}
+.video #shutter i{background:#ea4a47}
+.video.rec #shutter i{width:1.875rem;height:1.875rem;border-radius:0.5rem}
+#row{position:absolute;left:0;right:0;bottom:calc(var(--sb) - 0.1875rem);height:2.875rem;display:flex;justify-content:space-between;align-items:center;padding:0 2rem}
+#thumb{width:2.8125rem;height:2.8125rem;border-radius:50%;background:#2c2c2e center/cover;border:0.0625rem solid rgba(255,255,255,.4)}
+#mode{position:relative;width:10.4375rem;height:2.875rem;border-radius:1.4375rem;background:rgba(40,38,36,.75);display:flex;padding:0.25rem}
+#mode span{flex:1;z-index:1;display:grid;place-items:center;font-size:0.9688rem;letter-spacing:0.0625rem;font-weight:500;color:#fff}
+#mode span.on{color:var(--y)}
+#hl{position:absolute;top:0.25rem;bottom:0.25rem;left:0.25rem;width:calc(50% - 0.25rem);border-radius:1.25rem;background:rgba(26,24,24,.95);border:0.0938rem solid rgba(255,255,255,.28);transition:transform .3s cubic-bezier(.3,.7,.3,1)}
+.photo #hl{transform:translateX(100%)}
+.rec #mode,.rec #thumb,.rec #flip{opacity:.0;pointer-events:none}
+#flip{width:2.8125rem;height:2.8125rem;border-radius:50%;background:rgba(70,70,72,.55);display:grid;place-items:center}
+#flip svg{width:1.5rem;height:1.5rem;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .4s}
+#flash{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.pill svg.dots{fill:#fff;stroke:none}.pill i{cursor:pointer}#opts{position:absolute;right:0.9375rem;top:calc(var(--st) + 3.625rem);display:none;gap:0.5rem;z-index:5}#opts.show{display:flex}.video #opts{display:none!important}#opts b{background:rgba(46,46,48,.75);-webkit-backdrop-filter:blur(1rem);backdrop-filter:blur(1rem);border-radius:0.9375rem;padding:0.4375rem 0.75rem;font-size:0.8125rem;font-weight:600}#opts b.on{color:var(--y)}#toast{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--st) + 3.75rem);background:rgba(40,40,42,.92);padding:0.5rem 0.875rem;border-radius:0.875rem;font-size:0.8125rem;display:none;z-index:9;white-space:nowrap}#count{position:absolute;inset:0;display:none;place-items:center;font-size:7.5rem;font-weight:200;pointer-events:none;text-shadow:0 0 1.25rem #0008}#focus{position:absolute;width:4.875rem;height:4.875rem;border:0.0938rem solid var(--y);display:none;pointer-events:none}
+:root{--st:max(env(safe-area-inset-top,0px),3.6875rem)}
+html.br{--sb:.875rem}
+#cam{touch-action:none}
+#zoom button.on{min-width:2.25rem;padding:0 .25rem;font-size:.8125rem}
+#viewer{position:absolute;inset:0;background:#000;display:none;z-index:20;align-items:center;justify-content:center}
+#viewer img{max-width:100%;max-height:100%;object-fit:contain}
+#vdone{position:absolute;top:calc(var(--st) + .5rem);right:1rem;background:none;border:0;color:var(--y);font-size:1.0625rem;font-weight:600}
+:root{--y:#ffd60a}
+#mode{width:auto;padding:.25rem;gap:0}
+#mode span{flex:none;padding:0 1.25rem;height:2.375rem;font-size:.90625rem;letter-spacing:0;font-weight:500}
+#hl{width:auto;transform:none!important;transition:left .3s cubic-bezier(.3,.7,.3,1),width .3s;border:.125rem solid rgba(255,255,255,.26);border-radius:1.25rem}
+.photo #mode{background:rgba(58,54,52,.5)}.photo #hl{background:rgba(74,68,64,.82)}
+.video #mode{background:rgba(38,36,34,.95)}.video #hl{background:#131110}
+#zoom{gap:.0625rem}
+#zoom button{width:2.25rem;min-width:2.25rem;padding:0;font-size:1rem;font-weight:500}
+#zoom button.on{width:2.25rem;min-width:2.25rem;font-size:.9375rem;font-weight:600;background:rgba(36,36,36,.88)}
+#zoom button small{font-size:.6875rem;font-weight:600}
+#pl{padding:0 .6875rem;gap:.8125rem;font-size:.875rem;font-weight:500;letter-spacing:-.03em;background:rgba(50,60,90,.84)}
+#pl sup{font-size:.5rem;font-weight:600;letter-spacing:0;vertical-align:.3rem;margin-left:.1rem;opacity:.9}
+#flip svg{stroke-width:2.3}
+#shutter{border:.125rem solid rgba(235,235,240,.45)}
+</style>
+</head>
+<body>
+<div id="setup">
+  <h1>Camera Simulator</h1>
+  <p>Pick your videos, then hit Continue. Both videos loop forever. To change them later, reload the site.</p>
+  <div class="card"><label>1. Back camera video (required)</label><input id="fileB" type="file" accept="video/*"></div>
+  <div class="card"><label>2. Flip camera (optional)</label><input id="fileF" type="file" accept="video/*"><div class="row2" style="margin-top:12px"><span style="font-size:14px">Show my real camera live when I flip</span><input id="liveCam" type="checkbox"></div><p style="margin-top:8px;font-size:12px">Ticking this overrides the video above.</p><button id="testCam" type="button" style="margin-top:8px;background:#2c2c2e;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:14px">Enable camera</button><p id="camStat" style="margin-top:8px;font-size:12px"></p></div>
+  <div class="card row2"><span>Sound on</span><input id="sound" type="checkbox"></div>
+  <button id="go" disabled>Continue</button>
+</div>
+
+<div id="cam" class="photo">
+  <div id="vf"><div id="stage"><video id="vb" playsinline loop muted></video><video id="vfr" playsinline loop muted style="display:none"></video></div></div>
+  <div id="tbar"></div>
+  <div id="dot"></div>
+  <div id="pl" class="pill vd"><span id="rs">HD<sup>RES</sup></span><span id="fp">30<sup>FPS</sup></span></div>
+  <div id="pr" class="pill">
+    <i class="ph" id="nightB"><svg viewBox="0 0 24 24"><path d="M19 14.5A8 8 0 0 1 9 4.5a8 8 0 1 0 10 10z" fill="#ffd60a" stroke="none" transform="translate(-1 2)"/><text x="16" y="9" font-size="9" fill="#ffd60a" stroke="none" font-weight="700">1</text></svg></i>
+    <i class="ph" id="flashB"><svg viewBox="0 0 24 24"><path d="M12 2 5 13h6l-1 8 7-11h-6z" fill="#fff" stroke="none"/><circle cx="18" cy="18" r="4.5" fill="#fff" stroke="none"/><text x="15.7" y="20.7" font-size="7.5" font-weight="800" fill="#000" stroke="none">A</text></svg></i>
+    <i class="ph" id="liveB"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="12" r="6.5" stroke-dasharray="1.5 2"/><circle cx="12" cy="12" r="10" stroke-dasharray="1.5 2.5"/><path d="M4 20 20 4"/></svg></i>
+    <i class="vd" id="flashV"><svg viewBox="0 0 24 24"><path d="M13 2 6 13h5l-1 9 7-11h-5z" fill="#fff" stroke="none"/><path d="M4 3.5 20 20.5" stroke="#1c1c1e" stroke-width="4.4"/><path d="M4 3.5 20 20.5" stroke="#fff" stroke-width="1.8"/></svg></i>
+    <i id="more"><svg class="dots" viewBox="0 0 24 24"><circle cx="5" cy="8" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="8" r="2"/><circle cx="5" cy="16" r="2"/><circle cx="12" cy="16" r="2"/><circle cx="19" cy="16" r="2"/></svg></i>
+  </div>
+  <div id="opts"><b id="oT">Timer</b><b id="oF">Original</b></div><div id="toast"></div><div id="count"></div><div id="timer">00:00</div>
+  <div id="viewer"><img id="vimg" alt=""><button id="vdone">Done</button></div>
+  <div id="focus"></div><div id="flash"></div>
+  <div id="bbar"></div>
+  <div id="zoom"><button data-z=".5">.5</button><button data-z="1" class="on">1×</button><button data-z="2">2</button></div>
+  <button id="shutter"><i></i></button>
+  <div id="row">
+    <div id="thumb"></div>
+    <div id="mode"><div id="hl"></div><span id="mV">VIDEO</span><span id="mP" class="on">PHOTO</span></div>
+    <div id="flip"><svg id="fi" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-4L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14 4l2-2"/><path d="M20 20v-5h-5"/></svg></div>
+  </div>
+</div>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+function placeHl(){var a=$(mode==="video"?"mV":"mP"),h=$("hl");if(!a||!h)return;h.style.left=a.offsetLeft+"px";h.style.width=a.offsetWidth+"px"}
+function fit(){var k=Math.min(innerWidth/390,innerHeight/720);document.documentElement.style.fontSize=(16*k)+"px";if(window.placeHl&&cam&&cam.style.display==="block")placeHl()}fit();addEventListener("resize",fit);
+if(!(navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)))document.documentElement.classList.add("br");
+var cam=$("cam"),stage=$("stage"),vb=$("vb"),vfr=$("vfr");
+var urlB=null,urlF=null,mode="photo",z=1,front=false,flipping=false,rec=false,t0=0,tick=null,rot=0,liveOK=false,lastShot=null;
+
+$("fileB").onchange=function(e){var f=e.target.files[0];if(!f)return;urlB=URL.createObjectURL(f);$("go").disabled=false};
+$("fileF").onchange=function(e){var f=e.target.files[0];if(!f)return;urlF=URL.createObjectURL(f)};
+
+function fz(v){return (Math.round(v*10)/10).toString().replace(/^0\./,".")}
+function applyZoom(){
+  var base=mode==="video"?1.3:1;
+  stage.style.transform="scale("+Math.max(1,z*base)+")";
+  var k=z>=2?2:z>=1?1:0;
+  document.querySelectorAll("#zoom button").forEach(function(b,i){b.className=i===k?"on":"";b.innerHTML=i===k?fz(z)+"<small>×</small>":b.dataset.z});
+}
+function setMode(m){
+  if(rec)return;
+  mode=m;cam.classList.remove("photo","video");cam.classList.add(m);
+  $("mV").className=m==="video"?"on":"";$("mP").className=m==="photo"?"on":"";
+  applyZoom();placeHl();
+}
+$("mV").onclick=function(){setMode("video")};
+$("mP").onclick=function(){setMode("photo")};
+
+document.querySelectorAll("#zoom button").forEach(function(b){
+  b.onclick=function(){z=parseFloat(b.dataset.z);applyZoom()};
+});
+
+function hasF(){return !!(liveOK||urlF)}
+function active(){return(front&&hasF())?vfr:vb}
+function showActive(){
+  var useF=front&&hasF(),snd=$("sound").checked;
+  vb.style.display=useF?"none":"block";vfr.style.display=useF?"block":"none";
+  vb.style.transform=(front&&!hasF())?"scaleX(-1)":"none";vfr.style.transform=liveOK?"scaleX(-1)":"none";
+  var a=active(),o=useF?vb:vfr;
+  if(o.src||o.srcObject)o.pause();
+  a.muted=(a===vfr&&liveOK)?true:!snd;a.play().catch(function(){});
+}
+$("flip").onclick=function(){
+  if(flipping)return;flipping=true;
+  rot+=180;$("fi").style.transform="rotate("+rot+"deg)";
+  stage.classList.add("blur");
+  setTimeout(function(){front=!front;showActive();stage.classList.remove("blur");flipping=false;setTimeout(snap,300)},280);
+};
+
+function snap(){
+  try{
+    var v=active(),c=document.createElement("canvas");c.width=120;c.height=120;
+    var s=Math.min(v.videoWidth,v.videoHeight);if(!s)return;
+    c.getContext("2d").drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,120,120);
+    $("thumb").style.backgroundImage="url("+c.toDataURL("image/jpeg",.7)+")";
+    var w=Math.min(v.videoWidth,1080),c2=document.createElement("canvas");c2.width=w;c2.height=Math.round(v.videoHeight*w/v.videoWidth);c2.getContext("2d").drawImage(v,0,0,c2.width,c2.height);lastShot=c2.toDataURL("image/jpeg",.85);
+  }catch(e){}
+}
+
+$("go").onclick=function(){
+  vb.src=urlB;if(urlF)vfr.src=urlF;
+  $("setup").style.display="none";cam.style.display="block";
+  var st=function(){applyZoom();placeHl();setTimeout(placeHl,400);showActive();setTimeout(snap,900);if(document.documentElement.classList.contains("br"))toast("Tip: Share → Add to Home Screen for full screen")};
+  if($("liveCam").checked){var md=navigator.mediaDevices,pr=camStream?Promise.resolve(camStream):(md&&md.getUserMedia?askCam():Promise.reject({name:"Unsupported"}));pr.then(function(m){camStream=m;vfr.srcObject=m;liveOK=true;st()}).catch(function(){st();toast("Camera blocked here, using your video instead")})}else st();
+  if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(function(){});
+};
+
+cam.addEventListener("click",function(e){
+  if(e.clientY>window.innerHeight-300||e.target.closest(".pill,#opts,#viewer"))return;
+  var f=$("focus");f.style.display="block";f.style.left=(e.clientX-f.offsetWidth/2)+"px";f.style.top=(e.clientY-f.offsetHeight/2)+"px";
+  f.animate([{transform:"scale(1.5)",opacity:.4},{transform:"scale(1)",opacity:1}],{duration:220});
+  clearTimeout(f._t);f._t=setTimeout(function(){f.style.display="none"},1400);
+});
+
+function pad(n){return n<10?"0"+n:""+n}
+function stopRec(){
+  if(!rec)return;
+  rec=false;clearInterval(tick);cam.classList.remove("rec");snd("stop");snap();
+}
+$("shutter").onclick=function(){
+  if(mode==="video"){
+    if(!rec){
+      rec=true;t0=Date.now();cam.classList.add("rec");snd("start");$("timer").textContent="00:00";
+      tick=setInterval(function(){var s=Math.floor((Date.now()-t0)/1000);$("timer").textContent=pad(Math.floor(s/60))+":"+pad(s%60)},250);
+    }else stopRec();
+  }else{
+    var d=[0,3,10][tm];
+    if(d){var n=d,c=$("count");c.style.display="grid";c.textContent=n;var iv=setInterval(function(){n--;if(n<=0){clearInterval(iv);c.style.display="none";shot()}else c.textContent=n},1000)}else shot();
+  }
+};
+function shot(){snd("shot");$("flash").animate([{opacity:1},{opacity:0}],{duration:180});snap()}
+function toast(t){var e=$("toast");e.textContent=t;e.style.display="block";setTimeout(function(){e.style.display="none"},3500)}
+var tm=0,fi=0,fs=0,tor=false,nightOn=true,liveOn=false,res=0,fp=0;
+var FL=['<path d="M12 2 5 13h6l-1 8 7-11h-6z" fill="#fff" stroke="none"/><circle cx="18" cy="18" r="4.5" fill="#fff" stroke="none"/><text x="15.7" y="20.7" font-size="7.5" font-weight="800" fill="#000" stroke="none">A</text>','<path d="M12 2 5 13h6l-1 8 7-11h-6z" fill="#ffd60a" stroke="none"/>','<path d="M13 2 6 13h5l-1 9 7-11h-5z" fill="#fff" stroke="none"/><path d="M4 3.5 20 20.5" stroke="#1c1c1e" stroke-width="4.4"/><path d="M4 3.5 20 20.5" stroke="#fff" stroke-width="1.8"/>'];
+$("flashB").onclick=function(){fs=(fs+1)%3;this.firstChild.innerHTML=FL[fs]};
+$("flashV").onclick=function(){tor=!tor;this.firstChild.innerHTML=tor?FL[1]:FL[2]};
+$("nightB").onclick=function(){nightOn=!nightOn;var s=this.firstChild;s.firstChild.setAttribute("fill",nightOn?"#ffd60a":"#fff");s.lastChild.style.display=nightOn?"":"none"};
+$("liveB").onclick=function(){liveOn=!liveOn;var s=this.firstChild;s.style.stroke=liveOn?"#ffd60a":"#fff";s.lastChild.style.display=liveOn?"none":""};
+$("more").onclick=function(){$("opts").classList.toggle("show")};
+$("oT").onclick=function(){tm=(tm+1)%3;this.textContent=tm?"Timer "+[0,3,10][tm]+"s":"Timer";this.className=tm?"on":""};
+var FN=["Original","Vivid","Mono","Warm"],FF=["none","saturate(1.45) contrast(1.1)","grayscale(1)","sepia(.35) saturate(1.2)"];
+$("oF").onclick=function(){fi=(fi+1)%4;this.textContent=FN[fi];this.className=fi?"on":"";vb.style.filter=vfr.style.filter=FF[fi]};
+$("rs").onclick=function(){res=1-res;this.firstChild.nodeValue=res?"4K":"HD"};
+$("fp").onclick=function(){fp=1-fp;this.firstChild.nodeValue=fp?"60":"30"};
+var sx=0,sy=0;
+cam.addEventListener("touchstart",function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+cam.addEventListener("touchend",function(e){var t=e.changedTouches[0],dx=t.clientX-sx;if(Math.abs(dx)>70&&Math.abs(t.clientY-sy)<60)setMode(dx<0?"photo":"video")},{passive:true});
+var camStream=null;
+function askCam(){return navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false})}
+function camErr(e){return e&&e.name==="NotAllowedError"?"Blocked. If you tapped Don’t Allow, turn it on in Safari’s aA menu > Website Settings > Camera. If it never asked, this viewer doesn’t let embedded pages use the camera, so the page needs to be hosted on your own site.":"Camera isn’t available in this view ("+((e&&e.name)||"error")+"). Host the page on your own https site."}
+$("testCam").onclick=function(){var s=$("camStat");if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){s.textContent=camErr({name:"Unsupported"});return}s.textContent="Waiting for permission…";askCam().then(function(m){camStream=m;$("liveCam").checked=true;s.textContent="Camera ready ✓"}).catch(function(e){s.textContent=camErr(e)})};
+var ac=null;
+function snd(t){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();var n=ac.currentTime,g=ac.createGain();g.connect(ac.destination);
+ if(t==="shot"){var L=Math.floor(ac.sampleRate*.09),b=ac.createBuffer(1,L,ac.sampleRate),d=b.getChannelData(0);for(var i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,3);var s=ac.createBufferSource();s.buffer=b;g.gain.value=.5;s.connect(g);s.start(n)}
+ else{var o=ac.createOscillator();o.frequency.value=t==="start"?880:660;g.gain.setValueAtTime(.2,n);g.gain.exponentialRampToValueAtTime(.001,n+.12);o.connect(g);o.start(n);o.stop(n+.13)}}catch(e){}}
+$("thumb").onclick=function(){if(!lastShot)return;$("vimg").src=lastShot;$("viewer").style.display="flex"};
+$("vdone").onclick=function(){$("viewer").style.display="none"};
+var pd=0,pz=1;
+function dist(e){var a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+cam.addEventListener("touchstart",function(e){if(e.touches.length===2){pd=dist(e);pz=z;stage.style.transition="none"}},{passive:true});
+cam.addEventListener("touchmove",function(e){if(e.touches.length===2&&pd){z=Math.min(10,Math.max(.5,pz*dist(e)/pd));applyZoom()}},{passive:true});
+cam.addEventListener("touchend",function(e){if(pd&&e.touches.length<2){pd=0;stage.style.transition=""}},{passive:true});
+</script>
+</body>
+</html>
